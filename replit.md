@@ -1,5 +1,36 @@
 # Workspace
 
+## AutoFlow AI Dashboard
+
+A full-featured automobile manufacturing & supply chain SaaS dashboard built with React + Vite + Tailwind + Recharts. Served at `/` (root).
+
+### Pages
+- `/` — Dashboard (KPI cards, production trend, alerts)
+- `/production` — Production analytics with bar/line charts
+- `/inventory` — Inventory management with stock charts and sortable table
+- `/supply-chain` — Shipment tracking table and map placeholder
+- `/analytics` — Demand forecasting and regional sales charts
+- `/machines` — Machine monitoring with gauge charts and status indicators
+- `/ai-analysis` — AI Analysis: natural language prompt → dynamic chart generation
+- `/settings` — Theme color & dark/dark mode selector
+
+### AI Analysis Feature
+- Split-screen: Data Explorer (attribute chips by category) + Prompt Input area
+- Smart prompt parser in `src/lib/promptParser.ts` — keyword → metric → chart config
+- Mock dataset (120 records) in `src/lib/aiDataset.ts`
+- Supports line, bar, area, pie chart generation
+- "Explain this chart" insight summary
+- Query history with restore/delete
+- Save charts + export as JSON
+- Clickable example prompts + error handling with suggestions
+
+### Theme System
+- Light/Dark mode (localStorage persisted, CSS class toggle)
+- 4 color themes: Blue, Green, Purple, Orange (CSS `data-theme` attribute)
+- Defined in `src/index.css` with CSS custom properties
+
+
+
 ## Overview
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.

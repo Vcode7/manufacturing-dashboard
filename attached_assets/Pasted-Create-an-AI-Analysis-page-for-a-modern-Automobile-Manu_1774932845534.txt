@@ -1,0 +1,134 @@
+Create an "AI Analysis" page for a modern Automobile Manufacturing Dashboard web app.
+
+Tech Stack:
+
+* Next.js (React)
+* Tailwind CSS
+* Chart library (Recharts preferred)
+* Optional: integrate OpenAI API for natural language processing
+
+Goal:
+Build an interactive AI-powered analytics page where users can explore data and generate charts using natural language prompts.
+
+---
+
+UI Requirements:
+
+1. Layout:
+
+* Split screen design:
+  LEFT PANEL (30% width):
+
+  * Title: "Data Explorer"
+  * Show all available dataset attributes grouped by category:
+    • Production (units_produced, defects, utilization, downtime)
+    • Inventory (stock, threshold, supplier, lead_time)
+    • Machines (temperature, vibration, health_score)
+    • Supply Chain (shipment_status, delay_risk, delivery_time)
+    • Sales (units_sold, forecast, region)
+    • Financial (cost, revenue, profit_margin)
+  * Each attribute displayed as selectable chips/tags
+
+  RIGHT PANEL (70% width):
+
+  * Prompt input box (large, modern UI)
+  * Example prompts (clickable suggestions):
+    • "Show production vs defects over time"
+    • "Compare inventory levels by part"
+    • "Plot machine temperature trends"
+  * "Generate Chart" button
+
+---
+
+2. AI Behavior:
+
+When user enters a prompt:
+
+* Parse natural language input
+* Identify:
+  • Metrics (e.g., production, defects)
+  • Dimensions (e.g., date, plant, model)
+  • Chart type (line, bar, pie, etc.)
+
+Generate a chart configuration dynamically:
+
+* Chart type (line, bar, pie, area)
+* X-axis (time, category)
+* Y-axis (values)
+* Labels and colors
+
+---
+
+3. Chart Rendering:
+
+* Display generated chart below the input
+
+* Support:
+  • Line charts (for trends)
+  • Bar charts (comparisons)
+  • Pie charts (distribution)
+  • Area charts
+
+* Add:
+  • Tooltips
+  • Legends
+  • Smooth animations
+
+---
+
+4. Data Handling:
+
+* Use large mock dataset (100+ records)
+* Combine multiple datasets (production, inventory, machine logs)
+* Allow filtering (date range, plant, model)
+
+---
+
+5. Smart Features:
+
+* Auto-suggest chart type based on prompt
+* Highlight selected attributes from prompt
+* Show interpreted query (e.g., "Production vs Defects over Time")
+
+---
+
+6. Extra AI Features (IMPORTANT):
+
+* If prompt is unclear, show suggestions
+* If invalid attributes, show error message
+* Add "Explain this chart" button:
+  → AI generates insight summary (e.g., "Defects increased by 12% in last week")
+
+---
+
+7. UI Design:
+
+* Modern SaaS style
+* Light/Dark mode support
+* Multiple color themes
+* Rounded cards, soft shadows
+* Smooth transitions
+
+---
+
+8. Bonus Features:
+
+* Save chart option
+* Download chart as PNG
+* History of previous queries
+
+---
+
+Output:
+
+* Full working React component(s)
+* Modular structure (components for input, chart, attribute panel)
+* Dummy dataset included
+* Clean, scalable code
+
+---
+
+Goal Experience:
+
+User should feel like:
+"I can just ask questions about my manufacturing data and instantly get visual insights."

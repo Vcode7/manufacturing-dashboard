@@ -12,6 +12,7 @@ import SupplyChain from "@/pages/SupplyChain";
 import Analytics from "@/pages/Analytics";
 import Machines from "@/pages/Machines";
 import Settings from "@/pages/Settings";
+import AIAnalysis from "@/pages/AIAnalysis";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ function Router() {
           <Route path="/supply-chain" component={SupplyChain} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/machines" component={Machines} />
+          <Route path="/ai-analysis" component={AIAnalysis} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>

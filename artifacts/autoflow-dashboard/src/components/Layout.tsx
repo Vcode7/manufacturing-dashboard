@@ -11,7 +11,8 @@ import {
   Settings,
   Bell,
   Search,
-  Menu
+  Menu,
+  BrainCircuit
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ const navItems = [
   { href: "/supply-chain", label: "Supply Chain", icon: Truck },
   { href: "/analytics", label: "Analytics", icon: LineChart },
   { href: "/machines", label: "Machines", icon: Activity },
+  { href: "/ai-analysis", label: "AI Analysis", icon: BrainCircuit },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
