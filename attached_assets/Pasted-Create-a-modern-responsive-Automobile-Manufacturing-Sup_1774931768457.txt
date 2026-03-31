@@ -1,0 +1,99 @@
+Create a modern, responsive Automobile Manufacturing & Supply Chain Dashboard web app.
+
+Tech:
+
+* React / Next.js
+* Tailwind CSS
+* Chart library (Recharts or Chart.js)
+
+UI Requirements:
+
+* Clean, minimal, modern SaaS dashboard design
+* Light and Dark mode toggle
+* Multiple theme color options (blue, green, purple, orange)
+* Smooth transitions and animations
+* Fully responsive (desktop + tablet)
+
+Layout:
+
+1. Top Navbar:
+
+   * App name: "AutoFlow AI Dashboard"
+   * Theme switcher (light/dark)
+   * Color theme selector
+   * User profile icon
+
+2. KPI Cards (Top Section):
+
+   * Total Production Today
+   * Defect Rate %
+   * Inventory Health %
+   * Active Shipments
+   * Revenue
+
+3. Main Dashboard Sections:
+
+   A. Production Analytics:
+
+   * Bar chart: Production vs Target
+   * Line chart: Daily production trend
+   * KPI: Machine utilization %
+
+   B. Inventory Management:
+
+   * Stock levels chart
+   * Low stock alerts
+   * Table of parts inventory
+
+   C. Supply Chain:
+
+   * Shipment tracking table
+   * Status indicators (In Transit, Delayed, Delivered)
+   * Map visualization placeholder
+
+   D. Demand & Sales:
+
+   * Line chart for demand forecasting
+   * Region-wise sales breakdown
+
+   E. Machine Monitoring:
+
+   * Gauge charts (temperature, vibration)
+   * Status indicators (Running, Idle, Maintenance)
+
+   F. Alerts Panel:
+
+   * Real-time alerts list (severity color-coded)
+
+4. Sidebar Navigation:
+
+   * Dashboard
+   * Production
+   * Inventory
+   * Supply Chain
+   * Analytics
+   * Settings
+
+5. Data:
+
+   * Use large realistic mock data (100+ entries)
+   * Simulate real-time updates
+
+6. Extra Features:
+
+   * Search and filters
+   * Sorting tables
+   * Hover tooltips
+   * Animated charts
+
+Design Style:
+
+* Inspired by modern SaaS dashboards
+* Soft shadows, rounded cards, spacing
+* Use glassmorphism or subtle gradients
+
+Output:
+
+* Full working UI code
+* Modular components
+* Dummy data included
