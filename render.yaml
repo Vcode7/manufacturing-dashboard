@@ -1,0 +1,20 @@
+# Render Blueprint — deploys the API server
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: autoflow-api
+    runtime: node
+    plan: free
+    rootDir: artifacts/api-server
+    buildCommand: pnpm install && pnpm run build
+    startCommand: node --enable-source-maps ./dist/index.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: GROQ_API_KEY
+        sync: false          # You will paste this manually in the Render dashboard
+      - key: ALLOWED_ORIGIN
+        sync: false          # Set to your Vercel URL: https://your-project.vercel.app

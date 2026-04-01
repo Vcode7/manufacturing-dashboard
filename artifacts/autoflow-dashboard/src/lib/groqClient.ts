@@ -1,7 +1,9 @@
 import { ChartConfig } from "./promptParser";
 import { aiDataset } from "./aiDataset";
 
-const API_BASE = "/api"; // proxied via Vite to localhost:3000
+// In production (Vercel): VITE_API_BASE_URL = https://your-app.onrender.com/api
+// In local dev: falls back to /api which Vite proxies to localhost:3000
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 export interface AnalyzeResponse {
   charts: ChartConfig[];

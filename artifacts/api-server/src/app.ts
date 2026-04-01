@@ -6,6 +6,21 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Build a list of allowed origins:
+// - ALLOWED_ORIGIN: set this to your Vercel frontend URL in Render's env vars
+// - Always include localhost variants for local development
+const allowedOrigins = new Set<string>([
+  "http://localhost:5173",
+  "http://localhost:4173",
+]);
+
+if (process.env.ALLOWED_ORIGIN) {
+  // Support comma-separated list: e.g. "https://my-app.vercel.app,https://www.mycustomdomain.com"
+  process.env.ALLOWED_ORIGIN.split(",").forEach((o) =>
+    allowedOrigins.add(o.trim())
+  );
+}
+
 app.use(
   pinoHttp({
     logger,
@@ -25,7 +40,19 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow REST clients with no origin (Render health checks, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.has(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
