@@ -43,13 +43,8 @@ app.use(
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow REST clients with no origin (Render health checks, curl, etc.)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.has(origin)) return callback(null, true);
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    },
-    credentials: true,
+    origin: "*",
+    
   })
 );
 
