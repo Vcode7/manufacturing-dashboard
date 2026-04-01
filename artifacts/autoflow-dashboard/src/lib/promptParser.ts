@@ -1,9 +1,9 @@
 import { aiDataset, AiRecord } from "./aiDataset";
 
-export type ChartType = "line" | "bar" | "area" | "pie";
+export type ChartType = "line" | "bar" | "area" | "pie" | "scatter";
 
 export interface ChartSeries {
-  key: keyof AiRecord;
+  key: string;
   label: string;
   color: string;
 }
@@ -12,13 +12,14 @@ export interface ChartConfig {
   type: ChartType;
   title: string;
   description: string;
-  xKey: keyof AiRecord;
+  xKey: string;
   xLabel: string;
   series: ChartSeries[];
-  data: Partial<AiRecord>[];
+  data: Record<string, unknown>[];
   insight: string;
   highlightedAttributes: string[];
 }
+
 
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
@@ -145,7 +146,7 @@ function aggregateByDimension(
   data: AiRecord[],
   xKey: keyof AiRecord,
   yKeys: (keyof AiRecord)[]
-): Record<string, Record<string, number>>[] {
+): Record<string, unknown>[] {
   const grouped: Record<string, Record<string, number[]>> = {};
   for (const row of data) {
     const xVal = String(row[xKey]);
@@ -162,7 +163,7 @@ function aggregateByDimension(
       for (const [k, vals] of Object.entries(yCols)) {
         entry[k] = parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1));
       }
-      return entry as Record<string, number>;
+      return entry;
     })
     .slice(0, 30);
 }
@@ -222,7 +223,7 @@ export function parsePrompt(prompt: string): ChartConfig | null {
     xKey,
     xLabel: xKey === "date" ? "Date" : String(xKey).charAt(0).toUpperCase() + String(xKey).slice(1),
     series,
-    data: aggregated as Partial<AiRecord>[],
+    data: aggregated,
     insight: "",
     highlightedAttributes: attrs
   };
@@ -235,4 +236,70 @@ export function suggestChartType(keys: (keyof AiRecord)[]): ChartType {
   if (keys.length >= 3) return "area";
   if (keys.length === 1) return "bar";
   return "line";
+}
+
+/**
+ * Local fallback: generates 3–4 diverse ChartConfigs from a single prompt.
+ * Used when the backend is unavailable.
+ */
+export function generateMultipleCharts(prompt: string): ChartConfig[] {
+  const trimmed = prompt.trim();
+  if (!trimmed) return [];
+
+  const { keys, labels } = detectMetrics(trimmed);
+  if (!keys.length) return [];
+
+  const numericKeys = keys.filter((k) => {
+    const sample = aiDataset[0][k];
+    return typeof sample === "number";
+  });
+  if (!numericKeys.length) return [];
+
+  const timeDim: keyof AiRecord = "date";
+  const catDim: keyof AiRecord = "plant";
+
+  function makeConfig(
+    type: ChartType,
+    xKey: keyof AiRecord,
+    yKeys: (keyof AiRecord)[],
+    titleSuffix: string
+  ): ChartConfig {
+    const aggregated = aggregateByDimension(aiDataset, xKey, yKeys);
+    const series: ChartSeries[] = yKeys.map((k, i) => ({
+      key: k,
+      label: KEYWORDS[k as string]?.label ?? String(k).replace(/_/g, " "),
+      color: CHART_COLORS[i % CHART_COLORS.length],
+    }));
+    const title = labels.slice(0, 2).join(" & ") + titleSuffix;
+    const config: ChartConfig = {
+      type,
+      title,
+      description: `${title} ${xKey === "date" ? "over time" : `by ${xKey}`}`,
+      xKey,
+      xLabel: xKey === "date" ? "Date" : String(xKey).charAt(0).toUpperCase() + String(xKey).slice(1),
+      series,
+      data: aggregated as Partial<AiRecord>[],
+      insight: "",
+      highlightedAttributes: yKeys as string[],
+    };
+    config.insight = generateInsight(config);
+    return config;
+  }
+
+  const charts: ChartConfig[] = [];
+  const k1 = numericKeys.slice(0, 2);
+  const k2 = numericKeys.slice(0, 1);
+
+  // Chart 1: line over time
+  charts.push(makeConfig("line", timeDim, k1, " — trend"));
+  // Chart 2: bar by plant
+  charts.push(makeConfig("bar", catDim, k1, " by plant"));
+  // Chart 3: pie — distribution
+  charts.push(makeConfig("pie", catDim, k2, " distribution"));
+  // Chart 4: area — stacked view
+  if (numericKeys.length >= 2) {
+    charts.push(makeConfig("area", timeDim, numericKeys.slice(0, 3), " — cumulative"));
+  }
+
+  return charts;
 }

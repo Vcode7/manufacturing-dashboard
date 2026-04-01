@@ -4,93 +4,78 @@ import { ShipmentTable } from "@/components/ShipmentTable";
 import { initialShipments } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Truck, MapPin, Navigation2, CheckCircle2 } from "lucide-react";
+import { FilterPanel } from "@/components/FilterPanel";
+import { useFilterPanel } from "@/hooks/useFilterPanel";
 
 export default function SupplyChain() {
   const [shipments] = useState(initialShipments);
-  
-  const inTransit = shipments.filter(s => s.status === "In Transit").length;
-  const delayed = shipments.filter(s => s.status === "Delayed").length;
-  const delivered = shipments.filter(s => s.status === "Delivered").length;
+  const filterProps = useFilterPanel();
+
+  const inTransit = shipments.filter((s) => s.status === "In Transit").length;
+  const delayed = shipments.filter((s) => s.status === "Delayed").length;
+  const delivered = shipments.filter((s) => s.status === "Delivered").length;
+
+  const stats = [
+    { label: "Total Active", value: shipments.length, icon: Truck, color: "text-primary", bg: "bg-primary/10" },
+    { label: "In Transit", value: inTransit, icon: Navigation2, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Delayed", value: delayed, icon: MapPin, color: "text-rose-500", bg: "bg-rose-500/10" },
+    { label: "Delivered Today", value: delivered, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  ];
 
   return (
-    <PageWrapper className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Supply Chain Logistics</h1>
-        <p className="text-muted-foreground">Track inbound raw materials and outbound vehicle shipments.</p>
+    <PageWrapper className="space-y-4 p-5">
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Supply Chain Logistics</h1>
+          <p className="text-sm text-muted-foreground">Track inbound materials and outbound vehicle shipments.</p>
+        </div>
+        <FilterPanel {...filterProps} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-2">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <Truck className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">Total Active</p>
-            <p className="text-2xl font-bold">{shipments.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-2">
-            <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-              <Navigation2 className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">In Transit</p>
-            <p className="text-2xl font-bold">{inTransit}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-rose-200 dark:border-rose-900/50">
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-2">
-            <div className="h-10 w-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500">
-              <MapPin className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-medium text-rose-500">Delayed</p>
-            <p className="text-2xl font-bold text-rose-500">{delayed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-2">
-            <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">Delivered Today</p>
-            <p className="text-2xl font-bold">{delivered}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {stats.map((s) => (
+          <Card key={s.label} className="card-premium card-accent">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={`h-9 w-9 rounded-lg ${s.bg} flex items-center justify-center shrink-0`}>
+                <s.icon className={`h-4 w-4 ${s.color}`} />
+              </div>
               <div>
-                <CardTitle>Global Route Map</CardTitle>
-                <CardDescription>Live tracking of all major supply routes</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="w-full h-[300px] bg-muted/30 rounded-lg border border-dashed border-border flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')] bg-no-repeat bg-center bg-contain opacity-20 dark:invert"></div>
-                <div className="relative z-10 flex flex-col items-center gap-2">
-                  <MapPin className="h-8 w-8 text-primary animate-bounce" />
-                  <p className="text-sm font-medium text-muted-foreground">Interactive Map Integration Pending</p>
-                </div>
+                <p className="text-xs text-muted-foreground font-medium">{s.label}</p>
+                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
               </div>
             </CardContent>
           </Card>
-        </div>
-        
-        <div className="lg:col-span-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipment Ledger</CardTitle>
-              <CardDescription>Detailed manifest of all incoming and outgoing freight</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ShipmentTable shipments={shipments} />
-            </CardContent>
-          </Card>
-        </div>
+        ))}
       </div>
+
+      {/* Map */}
+      <Card className="card-premium">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold">Global Route Map</CardTitle>
+          <CardDescription className="text-xs">Live tracking of all major supply routes</CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <div className="w-full h-[200px] bg-muted/30 rounded-lg border border-dashed border-border flex items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')] bg-no-repeat bg-center bg-contain opacity-20 dark:invert" />
+            <div className="relative z-10 flex flex-col items-center gap-2">
+              <MapPin className="h-6 w-6 text-primary animate-bounce" />
+              <p className="text-xs font-medium text-muted-foreground">Interactive Map Integration Pending</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card className="card-premium">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold">Shipment Ledger</CardTitle>
+          <CardDescription className="text-xs">Detailed manifest of all incoming and outgoing freight</CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <ShipmentTable shipments={shipments} />
+        </CardContent>
+      </Card>
     </PageWrapper>
   );
 }

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light";
-type ColorTheme = "blue" | "green" | "purple" | "orange";
+export type Theme = "dark" | "light";
+export type ColorTheme = "blue" | "green" | "purple" | "orange" | "teal" | "rose";
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -14,6 +14,10 @@ interface ThemeProviderState {
   colorTheme: ColorTheme;
   setTheme: (theme: Theme) => void;
   setColorTheme: (colorTheme: ColorTheme) => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (v: boolean) => void;
+  filterPanelOpen: boolean;
+  setFilterPanelOpen: (v: boolean) => void;
 }
 
 const initialState: ThemeProviderState = {
@@ -21,6 +25,10 @@ const initialState: ThemeProviderState = {
   colorTheme: "blue",
   setTheme: () => null,
   setColorTheme: () => null,
+  sidebarCollapsed: false,
+  setSidebarCollapsed: () => null,
+  filterPanelOpen: false,
+  setFilterPanelOpen: () => null,
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
@@ -31,13 +39,19 @@ export function ThemeProvider({
   defaultColorTheme = "blue",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
+  const [theme, setThemeState] = useState<Theme>(
     () => (localStorage.getItem("vite-ui-theme") as Theme) || defaultTheme
   );
-  
-  const [colorTheme, setColorTheme] = useState<ColorTheme>(
+
+  const [colorTheme, setColorThemeState] = useState<ColorTheme>(
     () => (localStorage.getItem("vite-color-theme") as ColorTheme) || defaultColorTheme
   );
+
+  const [sidebarCollapsed, setSidebarCollapsedState] = useState<boolean>(
+    () => localStorage.getItem("sidebar-collapsed") === "true"
+  );
+
+  const [filterPanelOpen, setFilterPanelOpenState] = useState(false);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -52,15 +66,19 @@ export function ThemeProvider({
     localStorage.setItem("vite-color-theme", colorTheme);
   }, [colorTheme]);
 
-  const value = {
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  const value: ThemeProviderState = {
     theme,
     colorTheme,
-    setTheme: (theme: Theme) => {
-      setTheme(theme);
-    },
-    setColorTheme: (colorTheme: ColorTheme) => {
-      setColorTheme(colorTheme);
-    },
+    setTheme: (t) => setThemeState(t),
+    setColorTheme: (c) => setColorThemeState(c),
+    sidebarCollapsed,
+    setSidebarCollapsed: (v) => setSidebarCollapsedState(v),
+    filterPanelOpen,
+    setFilterPanelOpen: (v) => setFilterPanelOpenState(v),
   };
 
   return (

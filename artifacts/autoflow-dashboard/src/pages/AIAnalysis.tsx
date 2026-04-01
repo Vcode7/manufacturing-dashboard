@@ -1,12 +1,18 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, AlertCircle, BrainCircuit, Filter } from "lucide-react";
+import {
+  Sparkles, AlertCircle, BrainCircuit, Filter,
+  BookmarkCheck, Trash2, Clock, ChevronDown, ChevronUp
+} from "lucide-react";
 import { DataExplorer } from "@/components/ai/DataExplorer";
 import { PromptInput } from "@/components/ai/PromptInput";
 import { GeneratedChart } from "@/components/ai/GeneratedChart";
+import { MultiChartGrid } from "@/components/ai/MultiChartGrid";
 import { QueryHistory, HistoryEntry } from "@/components/ai/QueryHistory";
-import { parsePrompt, ChartConfig } from "@/lib/promptParser";
-import { Card, CardContent } from "@/components/ui/card";
+import { ChartConfig } from "@/lib/promptParser";
+import { analyzeWithGroq } from "@/lib/groqClient";
+import { getSavedChartSets, savechartSet, deleteChartSet, clearAllChartSets, SavedChartSet } from "@/lib/savedCharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -15,23 +21,30 @@ const SUGGESTIONS_FOR_UNCLEAR = [
   "Show production vs defects over time",
   "Compare inventory levels by plant",
   "Plot temperature and vibration trends",
-  "Revenue vs cost over the last quarter"
+  "Revenue vs cost over the last quarter",
 ];
 
 export default function AIAnalysis() {
   const [selectedAttrs, setSelectedAttrs] = useState<string[]>([]);
-  const [currentConfig, setCurrentConfig] = useState<ChartConfig | null>(null);
+  const [currentCharts, setCurrentCharts] = useState<ChartConfig[]>([]);
+  const [currentSource, setCurrentSource] = useState<"groq" | "local" | "local-fallback">("local");
+  const [lastPrompt, setLastPrompt] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastPrompt, setLastPrompt] = useState("");
-  const [savedCharts, setSavedCharts] = useState<ChartConfig[]>([]);
   const [filterPlant, setFilterPlant] = useState("all");
   const [filterModel, setFilterModel] = useState("all");
+  const [savedSets, setSavedSets] = useState<SavedChartSet[]>([]);
+  const [showSaved, setShowSaved] = useState(true);
+
+  // Load persisted saved chart sets on mount
+  useEffect(() => {
+    setSavedSets(getSavedChartSets());
+  }, []);
 
   const handleToggleAttr = useCallback((key: string) => {
-    setSelectedAttrs(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    setSelectedAttrs((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
   }, []);
 
@@ -39,54 +52,73 @@ export default function AIAnalysis() {
     setIsLoading(true);
     setError(null);
     setLastPrompt(prompt);
+    setCurrentCharts([]);
 
-    await new Promise(r => setTimeout(r, 600));
+    try {
+      const result = await analyzeWithGroq(prompt);
+      if (!result.charts.length) {
+        setError("unclear");
+        setIsLoading(false);
+        return;
+      }
+      setCurrentCharts(result.charts);
+      setCurrentSource(result.source);
 
-    const config = parsePrompt(prompt);
-    setIsLoading(false);
-
-    if (!config) {
-      setError("unclear");
-      setCurrentConfig(null);
-      return;
+      // Add to history (use first chart config as the "entry config" for compatibility)
+      const entry: HistoryEntry = {
+        id: Date.now().toString(),
+        prompt,
+        config: result.charts[0],
+        timestamp: new Date(),
+      };
+      setHistory((prev) => [entry, ...prev].slice(0, 10));
+    } catch (err) {
+      console.error("AI Analysis error:", err);
+      setError("api");
+    } finally {
+      setIsLoading(false);
     }
+  }, []);
 
-    setCurrentConfig(config);
-    setError(null);
-
-    const entry: HistoryEntry = {
+  const handleSaveAll = useCallback(() => {
+    if (!currentCharts.length) return;
+    const set: SavedChartSet = {
       id: Date.now().toString(),
-      prompt,
-      config,
-      timestamp: new Date()
+      prompt: lastPrompt,
+      timestamp: new Date().toISOString(),
+      charts: currentCharts,
+      source: currentSource,
     };
-    setHistory(prev => [entry, ...prev].slice(0, 10));
+    savechartSet(set);
+    setSavedSets(getSavedChartSets());
+    setCurrentCharts([]); // dismiss after save
+  }, [currentCharts, lastPrompt, currentSource]);
+
+  const handleDismiss = useCallback(() => {
+    setCurrentCharts([]);
   }, []);
 
-  const handleRestore = useCallback((entry: HistoryEntry) => {
-    setCurrentConfig(entry.config);
+  const handleDeleteSet = useCallback((id: string) => {
+    deleteChartSet(id);
+    setSavedSets(getSavedChartSets());
+  }, []);
+
+  const handleClearAll = useCallback(() => {
+    clearAllChartSets();
+    setSavedSets([]);
+  }, []);
+
+  const handleRestoreHistory = useCallback((entry: HistoryEntry) => {
     setLastPrompt(entry.prompt);
-    setError(null);
   }, []);
 
-  const handleDelete = useCallback((id: string) => {
-    setHistory(prev => prev.filter(e => e.id !== id));
+  const handleDeleteHistory = useCallback((id: string) => {
+    setHistory((prev) => prev.filter((e) => e.id !== id));
   }, []);
-
-  const handleSave = useCallback((config: ChartConfig) => {
-    setSavedCharts(prev => {
-      const already = prev.some(c => c.title === config.title && c.type === config.type);
-      if (already) return prev;
-      return [...prev, config];
-    });
-  }, []);
-
-  const interpretedQuery = currentConfig
-    ? `${currentConfig.title} ${currentConfig.xKey === "date" ? "over time" : `by ${currentConfig.xKey}`}`
-    : null;
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -94,7 +126,7 @@ export default function AIAnalysis() {
             <h1 className="text-xl font-bold text-foreground">AI Analysis</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Ask questions about your manufacturing data and instantly get visual insights.
+            Ask questions about your manufacturing data — get 3–4 chart types instantly.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -105,7 +137,7 @@ export default function AIAnalysis() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Plants</SelectItem>
-              {["Detroit", "Munich", "Shanghai", "Monterrey", "Chennai"].map(p => (
+              {["Detroit", "Munich", "Shanghai", "Monterrey", "Chennai"].map((p) => (
                 <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
             </SelectContent>
@@ -116,7 +148,7 @@ export default function AIAnalysis() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Models</SelectItem>
-              {["Sedan X1", "SUV Pro", "Truck XL", "EV Nova", "Coupe GT"].map(m => (
+              {["Sedan X1", "SUV Pro", "Truck XL", "EV Nova", "Coupe GT"].map((m) => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
@@ -124,11 +156,14 @@ export default function AIAnalysis() {
         </div>
       </div>
 
+      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
+        {/* Left: Data Explorer */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm min-h-[500px]">
           <DataExplorer selected={selectedAttrs} onToggle={handleToggleAttr} />
         </div>
 
+        {/* Right: Prompt + Charts */}
         <div className="flex flex-col gap-5">
           <PromptInput
             onSubmit={handleSubmit}
@@ -137,6 +172,7 @@ export default function AIAnalysis() {
           />
 
           <AnimatePresence mode="wait">
+            {/* Loading */}
             {isLoading && (
               <motion.div
                 key="loading"
@@ -148,17 +184,20 @@ export default function AIAnalysis() {
                   <CardContent className="flex items-center gap-3 py-8">
                     <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                     <div>
-                      <p className="text-sm font-medium text-foreground">Analyzing your query...</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Parsing metrics and generating chart</p>
+                      <p className="text-sm font-medium text-foreground">Generating charts...</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Running AI analysis — expecting 3–4 chart types
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
+            {/* Error: unclear prompt */}
             {!isLoading && error === "unclear" && (
               <motion.div
-                key="error"
+                key="error-unclear"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
@@ -170,12 +209,12 @@ export default function AIAnalysis() {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-foreground">Could not interpret your query</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          The prompt <span className="font-medium text-foreground">&ldquo;{lastPrompt}&rdquo;</span> doesn&apos;t match any known metrics. Try being more specific.
+                          The prompt <span className="font-medium text-foreground">&ldquo;{lastPrompt}&rdquo;</span> didn&apos;t return results. Try being more specific.
                         </p>
                         <div className="mt-3">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">Try one of these instead:</p>
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Try one of these:</p>
                           <div className="flex flex-wrap gap-2">
-                            {SUGGESTIONS_FOR_UNCLEAR.map(s => (
+                            {SUGGESTIONS_FOR_UNCLEAR.map((s) => (
                               <button
                                 key={s}
                                 onClick={() => handleSubmit(s)}
@@ -193,65 +232,148 @@ export default function AIAnalysis() {
               </motion.div>
             )}
 
-            {!isLoading && currentConfig && !error && (
+            {/* Error: API error */}
+            {!isLoading && error === "api" && (
               <motion.div
-                key="chart"
+                key="error-api"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+              >
+                <Card className="border-destructive/40">
+                  <CardContent className="pt-5">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">API connection error</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Could not reach the backend at <code className="font-mono">localhost:3000</code>. Make sure the API server is running.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-3 h-7 text-xs"
+                          onClick={() => handleSubmit(lastPrompt)}
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Current charts multi-grid */}
+            {!isLoading && currentCharts.length > 0 && !error && (
+              <motion.div
+                key="charts"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-col gap-3"
               >
-                {interpretedQuery && (
-                  <div className="flex items-center gap-2 px-1">
-                    <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <p className="text-xs text-muted-foreground">
-                      Interpreted as: <span className="font-medium text-foreground">{interpretedQuery}</span>
-                    </p>
-                    {currentConfig.highlightedAttributes.length > 0 && (
-                      <div className="flex gap-1">
-                        {currentConfig.highlightedAttributes.slice(0, 4).map(a => (
-                          <span
-                            key={a}
-                            className={cn(
-                              "text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium",
-                              selectedAttrs.includes(a) && "ring-1 ring-primary"
-                            )}
-                          >
-                            {a.replace(/_/g, " ")}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <GeneratedChart config={currentConfig} onSave={handleSave} />
+                <div className="flex items-center gap-2 px-1 mb-3">
+                  <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    Interpreted as: <span className="font-medium text-foreground">{currentCharts[0]?.description}</span>
+                  </p>
+                </div>
+                <MultiChartGrid
+                  charts={currentCharts}
+                  source={currentSource}
+                  prompt={lastPrompt}
+                  onSaveAll={handleSaveAll}
+                  onDismiss={handleDismiss}
+                />
               </motion.div>
             )}
           </AnimatePresence>
 
-          {savedCharts.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground">Saved Charts ({savedCharts.length})</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-muted-foreground hover:text-destructive"
-                  onClick={() => setSavedCharts([])}
-                  data-testid="button-clear-saved"
-                >
-                  Clear all
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {savedCharts.map((c, i) => (
-                  <GeneratedChart key={`saved-${i}`} config={c} />
-                ))}
-              </div>
+          {/* ── Saved Chart Sets ─────────────────────── */}
+          {savedSets.length > 0 && (
+            <div className="border border-border rounded-xl overflow-hidden">
+              <button
+                className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors"
+                onClick={() => setShowSaved((v) => !v)}
+                data-testid="button-toggle-saved"
+              >
+                <div className="flex items-center gap-2">
+                  <BookmarkCheck className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Saved Analysis ({savedSets.length} sets)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-muted-foreground hover:text-destructive"
+                    onClick={(e) => { e.stopPropagation(); handleClearAll(); }}
+                    data-testid="button-clear-all-saved"
+                  >
+                    Clear all
+                  </Button>
+                  {showSaved ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {showSaved && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 flex flex-col gap-6">
+                      {savedSets.map((set) => (
+                        <div key={set.id} className="flex flex-col gap-3">
+                          {/* Set header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(set.timestamp).toLocaleString()}
+                              </span>
+                              <span className={cn(
+                                "text-xs px-1.5 py-0.5 rounded-full font-medium",
+                                set.source === "groq"
+                                  ? "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
+                                  : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                              )}>
+                                {set.source === "groq" ? "Groq AI" : "Local"}
+                              </span>
+                              <span className="text-xs font-medium text-foreground truncate max-w-[250px]">
+                                "{set.prompt}"
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDeleteSet(set.id)}
+                              data-testid={`button-delete-set-${set.id}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          {/* Charts grid */}
+                          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                            {set.charts.map((chart, i) => (
+                              <GeneratedChart key={`${set.id}-${i}`} config={chart} />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
-          <QueryHistory history={history} onRestore={handleRestore} onDelete={handleDelete} />
+          <QueryHistory history={history} onRestore={handleRestoreHistory} onDelete={handleDeleteHistory} />
         </div>
       </div>
     </div>
